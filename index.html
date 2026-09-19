@@ -1,40 +1,389 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello, World!</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 2rem;
-      background: #0d0f13;
-      color: #e8eaf0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    }
-    h1 {
-      margin: 0 0 .6rem;
-      font-size: clamp(2rem, 7vw, 4.5rem);
-      letter-spacing: -.02em;
-    }
-    p { margin: 0; color: #8b93a7; font-size: clamp(.9rem, 2vw, 1.1rem); }
-    code {
-      background: rgba(255,255,255,.07);
-      padding: .15em .45em;
-      border-radius: 4px;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>am / is / are — Interactive English Lesson</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#0d0f13; --card:#161a21; --card2:#1b2029;
+    --line:rgba(255,255,255,.09); --txt:#e8eaf0; --dim:#8b93a7;
+    --am:#f0b862; --is:#57c9f2; --are:#68d391;
+    --ok:#68d391; --bad:#f2707a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55; padding:clamp(1rem,4vw,3rem);
+  }
+  .wrap{max-width:820px;margin:0 auto}
+  header{text-align:center;margin-bottom:2.5rem}
+  h1{margin:0 0 .4rem;font-size:clamp(1.7rem,5vw,2.6rem);letter-spacing:-.02em}
+  h1 .am{color:var(--am)} h1 .is{color:var(--is)} h1 .are{color:var(--are)}
+  header p{margin:0;color:var(--dim)}
+  h2{font-size:1.1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);
+     margin:2.6rem 0 1rem;font-weight:600}
+  .cards{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem}
+  .card .form{font-size:1.5rem;font-weight:700;margin-bottom:.45rem}
+  .card small{color:var(--dim);display:block}
+  .card .pron{margin-top:.6rem;font-size:.95rem}
+  .c-am{border-top:3px solid var(--am)}   .c-am .form{color:var(--am)}
+  .c-is{border-top:3px solid var(--is)}   .c-is .form{color:var(--is)}
+  .c-are{border-top:3px solid var(--are)} .c-are .form{color:var(--are)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:clamp(1.1rem,3vw,1.7rem)}
+  .qmeta{display:flex;justify-content:space-between;color:var(--dim);font-size:.85rem;
+         margin-bottom:.9rem;letter-spacing:.05em;text-transform:uppercase}
+  .sentence{font-size:clamp(1.15rem,3.4vw,1.6rem);margin:.2rem 0 1.3rem;min-height:2.4em}
+  .blank{display:inline-block;min-width:4.2em;border-bottom:2px dashed var(--line);
+         text-align:center;color:var(--dim)}
+  .blank.filled{color:var(--ok);border-color:var(--ok);border-bottom-style:solid}
+  .opts{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  button{font:inherit;cursor:pointer;border-radius:11px;border:1px solid var(--line);
+         background:var(--card2);color:var(--txt);padding:.75rem 1rem;
+         transition:transform .12s ease,background .15s ease,border-color .15s ease}
+  button:hover:not(:disabled){background:#232a35;transform:translateY(-1px)}
+  button:disabled{cursor:default;opacity:.85}
+  button.correct{border-color:var(--ok);background:rgba(104,211,145,.14);color:var(--ok);font-weight:600}
+  button.wrong{border-color:var(--bad);background:rgba(242,112,122,.13);color:var(--bad)}
+  .row{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.4rem}
+  input[type=text]{font:inherit;flex:1 1 200px;background:var(--card2);color:var(--txt);
+    border:1px solid var(--line);border-radius:11px;padding:.75rem 1rem}
+  input[type=text]:focus{outline:2px solid var(--is);outline-offset:1px}
+  .primary{background:var(--is);color:#0b0e13;border-color:transparent;font-weight:650}
+  .primary:hover:not(:disabled){background:#7ad4f7}
+  .feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:11px;border:1px solid var(--line);
+            background:var(--card2);display:none}
+  .feedback.show{display:block;animation:pop .22s ease}
+  .feedback.good{border-color:rgba(104,211,145,.5);background:rgba(104,211,145,.1)}
+  .feedback.miss{border-color:rgba(242,112,122,.5);background:rgba(242,112,122,.1)}
+  @keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .bar{height:6px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:1.1rem}
+  .bar span{display:block;height:100%;width:0;background:var(--is);transition:width .3s ease}
+  .done{text-align:center}
+  .done .score{font-size:clamp(2.2rem,9vw,3.4rem);font-weight:700;margin:.4rem 0}
+  .muted{color:var(--dim)}
+  footer{margin:2.5rem 0 1rem;text-align:center;color:var(--dim);font-size:.85rem}
+  .hint{font-size:.9rem;color:var(--dim);margin-top:.5rem}
+</style>
 </head>
 <body>
-  <main>
-    <h1>Hello, World! 👋</h1>
-    <p>Pushed to <code>ArslanCS1993/homeworkenglish</code> from the Hermes agent.</p>
-  </main>
+<div class="wrap">
+
+  <header>
+    <h1><span class="am">am</span> · <span class="is">is</span> · <span class="are">are</span></h1>
+    <p>Interactive lesson — the verb <strong>to be</strong> in the present</p>
+  </header>
+
+  <h2>The rule</h2>
+  <div class="cards">
+    <div class="card c-am">
+      <div class="form">I → am</div>
+      <small>only with <strong>I</strong></small>
+      <div class="pron">I <em>am</em> ready. · I <em>am</em> from Russia.</div>
+    </div>
+    <div class="card c-is">
+      <div class="form">he / she / it → is</div>
+      <small>one person or thing</small>
+      <div class="pron">She <em>is</em> a teacher. · It <em>is</em> cold.</div>
+    </div>
+    <div class="card c-are">
+      <div class="form">you / we / they → are</div>
+      <small>you, and more than one</small>
+      <div class="pron">They <em>are</em> friends. · You <em>are</em> right.</div>
+    </div>
+  </div>
+  <p class="hint">💡 <strong>you</strong> always takes <strong>are</strong> — for one person too.</p>
+
+  <h2>Part 1 · Choose the correct form</h2>
+  <div class="panel" id="part1">
+    <div class="bar"><span id="bar1"></span></div>
+    <div class="qmeta"><span id="meta1">Question 1</span><span id="score1">Score 0</span></div>
+    <div class="sentence" id="sent1"></div>
+    <div class="opts" id="opts1"></div>
+    <div class="feedback" id="fb1" aria-live="polite"></div>
+    <div class="row" id="next1row" style="display:none">
+      <button class="primary" id="next1">Next →</button>
+    </div>
+  </div>
+
+  <h2>Part 2 · Type the missing word</h2>
+  <div class="panel" id="part2">
+    <div class="bar"><span id="bar2"></span></div>
+    <div class="qmeta"><span id="meta2">Question 1</span><span id="score2">Score 0</span></div>
+    <div class="sentence" id="sent2"></div>
+    <div class="row">
+      <input type="text" id="inp2" placeholder="am / is / are" autocomplete="off"
+             autocapitalize="off" spellcheck="false" aria-label="Type am, is or are">
+      <button class="primary" id="check2">Check</button>
+    </div>
+    <div class="feedback" id="fb2" aria-live="polite"></div>
+    <div class="row" id="next2row" style="display:none">
+      <button class="primary" id="next2">Next →</button>
+    </div>
+  </div>
+
+  <h2>Part 3 · Write the short form</h2>
+  <div class="panel" id="part3">
+    <div class="bar"><span id="bar3"></span></div>
+    <div class="qmeta"><span id="meta3">Question 1</span><span id="score3">Score 0</span></div>
+    <div class="sentence" id="sent3"></div>
+    <div class="row">
+      <input type="text" id="inp3" placeholder="e.g. I'm" autocomplete="off"
+             autocapitalize="off" spellcheck="false" aria-label="Type the short form">
+      <button class="primary" id="check3">Check</button>
+    </div>
+    <div class="feedback" id="fb3" aria-live="polite"></div>
+    <div class="row" id="next3row" style="display:none">
+      <button class="primary" id="next3">Next →</button>
+    </div>
+  </div>
+
+  <h2>Result</h2>
+  <div class="panel done" id="result">
+    <p class="muted" id="resultHint">Finish all three parts to see your score.</p>
+    <div class="score" id="resultScore">—</div>
+    <p class="muted" id="resultMsg"></p>
+    <div class="row" style="justify-content:center">
+      <button id="restart">Start again ↺</button>
+    </div>
+  </div>
+
+  <footer>am · is · are — practice page · built as a single HTML file</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- question banks ---------- */
+  const PART1 = [
+    {s:["I {{}} a student."],           a:"am"},
+    {s:["She {{}} my sister."],         a:"is"},
+    {s:["They {{}} from Brazil."],      a:"are"},
+    {s:["It {{}} very cold today."],    a:"is"},
+    {s:["You {{}} right."],             a:"are"},
+    {s:["We {{}} ready to start."],     a:"are"},
+    {s:["He {{}} a doctor."],           a:"is"},
+    {s:["I {{}} hungry."],              a:"am"}
+  ];
+
+  const PART2 = [
+    {s:["My name {{}} Alina."],                 a:"is"},
+    {s:["I {{}} nineteen years old."],          a:"am"},
+    {s:["We {{}} good friends."],               a:"are"},
+    {s:["This book {{}} interesting."],         a:"is"},
+    {s:["You {{}} a good student."],             a:"are"},
+    {s:["They {{}} at home now."],              a:"are"},
+    {s:["I {{}} from Moscow."],                 a:"am"},
+    {s:["My parents {{}} teachers."],           a:"are"}
+  ];
+
+  const PART3 = [
+    {s:["I am"],       a:"i'm"},
+    {s:["she is"],     a:"she's"},
+    {s:["they are"],   a:"they're"},
+    {s:["he is"],      a:"he's"},
+    {s:["we are"],     a:"we're"},
+    {s:["it is"],      a:"it's"},
+    {s:["you are"],    a:"you're"}
+  ];
+
+  const NORM = s => s.toLowerCase()
+                     .replace(/[\u2018\u2019\u02bc`´]/g, "'")
+                     .replace(/[^a-z']/g, "");
+
+  const el = id => document.getElementById(id);
+  const score = {p1:0, p2:0, p3:0};
+
+  function renderSentence(target, item, filled){
+    target.innerHTML = "";
+    item.s.forEach((chunk, i) => {
+      const text = chunk.split("{{}}");
+      target.appendChild(document.createTextNode(text[0]));
+      if (text.length > 1){
+        const b = document.createElement("span");
+        b.className = "blank" + (filled ? " filled" : "");
+        b.textContent = filled || "…";
+        target.appendChild(b);
+        target.appendChild(document.createTextNode(text[1]));
+      }
+      if (i < item.s.length - 1) target.appendChild(document.createElement("br"));
+    });
+  }
+
+  function feedback(box, ok, msg){
+    box.className = "feedback show " + (ok ? "good" : "miss");
+    box.innerHTML = (ok ? "✅ " : "❌ ") + msg;
+  }
+
+  /* ---------- PART 1: multiple choice ---------- */
+  const FORMS = ["am","is","are"];
+  let i1 = 0;
+
+  function show1(){
+    const item = PART1[i1];
+    el("meta1").textContent = "Question " + (i1+1) + " of " + PART1.length;
+    el("score1").textContent = "Score " + score.p1;
+    el("bar1").style.width = (i1 / PART1.length * 100) + "%";
+    renderSentence(el("sent1"), item, "");
+    el("fb1").className = "feedback";
+    el("next1row").style.display = "none";
+
+    const box = el("opts1");
+    box.innerHTML = "";
+    FORMS.forEach(f => {
+      const b = document.createElement("button");
+      b.textContent = f;
+      b.onclick = () => {
+        const ok = f === item.a;
+        if (ok) score.p1++;
+        el("score1").textContent = "Score " + score.p1;
+        [...box.children].forEach(c => {
+          c.disabled = true;
+          if (c.textContent === item.a) c.classList.add("correct");
+          else if (c === b) c.classList.add("wrong");
+        });
+        renderSentence(el("sent1"), item, item.a);
+        feedback(el("fb1"), ok, ok
+          ? "<strong>" + f + "</strong> is correct — well done!"
+          : "Not quite. The answer is <strong>" + item.a + "</strong>. Remember: " + why(item.a));
+        el("next1row").style.display = "flex";
+        el("next1").textContent = (i1 === PART1.length-1) ? "See my score →" : "Next →";
+      };
+      box.appendChild(b);
+    });
+  }
+
+  el("next1").onclick = () => {
+    i1++;
+    if (i1 < PART1.length) show1();
+    else { el("bar1").style.width = "100%"; finishPart(1); }
+  };
+
+  /* ---------- PART 2: typing ---------- */
+  let i2 = 0, locked2 = false;
+
+  function show2(focus){
+    const item = PART2[i2];
+    locked2 = false;
+    el("meta2").textContent = "Question " + (i2+1) + " of " + PART2.length;
+    el("score2").textContent = "Score " + score.p2;
+    el("bar2").style.width = (i2 / PART2.length * 100) + "%";
+    renderSentence(el("sent2"), item, "");
+    el("fb2").className = "feedback";
+    el("next2row").style.display = "none";
+    el("inp2").value = "";
+    el("inp2").disabled = false;
+    el("check2").disabled = false;
+    if (focus !== false) el("inp2").focus({preventScroll:true});
+  }
+
+  function check2(){
+    if (locked2) return;
+    const item = PART2[i2];
+    const val = NORM(el("inp2").value);
+    if (!val) { el("inp2").focus(); return; }
+    locked2 = true;
+    const ok = val === item.a;
+    if (ok) score.p2++;
+    el("score2").textContent = "Score " + score.p2;
+    el("inp2").disabled = true;
+    el("check2").disabled = true;
+    renderSentence(el("sent2"), item, item.a);
+    feedback(el("fb2"), ok, ok
+      ? "<strong>" + item.a + "</strong> is correct!"
+      : "The answer is <strong>" + item.a + "</strong>. " + why(item.a));
+    el("next2row").style.display = "flex";
+    el("next2").textContent = (i2 === PART2.length-1) ? "See my score →" : "Next →";
+  }
+
+  el("check2").onclick = check2;
+  el("inp2").addEventListener("keydown", e => { if (e.key === "Enter") check2(); });
+  el("next2").onclick = () => {
+    i2++;
+    if (i2 < PART2.length) show2();
+    else { el("bar2").style.width = "100%"; finishPart(2); }
+  };
+
+  /* ---------- PART 3: contractions ---------- */
+  let i3 = 0, locked3 = false;
+
+  function show3(focus){
+    const item = PART3[i3];
+    locked3 = false;
+    el("meta3").textContent = "Question " + (i3+1) + " of " + PART3.length;
+    el("score3").textContent = "Score " + score.p3;
+    el("bar3").style.width = (i3 / PART3.length * 100) + "%";
+    el("sent3").innerHTML = "<strong>" + item.s[0] + "</strong> &nbsp;→&nbsp; ?";
+    el("fb3").className = "feedback";
+    el("next3row").style.display = "none";
+    el("inp3").value = "";
+    el("inp3").disabled = false;
+    el("check3").disabled = false;
+    if (focus !== false) el("inp3").focus({preventScroll:true});
+  }
+
+  function check3(){
+    if (locked3) return;
+    const item = PART3[i3];
+    const val = NORM(el("inp3").value);
+    if (!val) { el("inp3").focus(); return; }
+    locked3 = true;
+    const ok = val === item.a;
+    if (ok) score.p3++;
+    el("score3").textContent = "Score " + score.p3;
+    el("inp3").disabled = true;
+    el("check3").disabled = true;
+    el("sent3").innerHTML = "<strong>" + item.s[0] + "</strong> &nbsp;→&nbsp; " + item.a;
+    feedback(el("fb3"), ok, ok
+      ? "Correct — <strong>" + item.a + "</strong>."
+      : "It's <strong>" + item.a + "</strong> — the apostrophe replaces the missing letter.");
+    el("next3row").style.display = "flex";
+    el("next3").textContent = (i3 === PART3.length-1) ? "See my score →" : "Next →";
+  }
+
+  el("check3").onclick = check3;
+  el("inp3").addEventListener("keydown", e => { if (e.key === "Enter") check3(); });
+  el("next3").onclick = () => {
+    i3++;
+    if (i3 < PART3.length) show3();
+    else { el("bar3").style.width = "100%"; finishPart(3); }
+  };
+
+  /* ---------- results ---------- */
+  function finishPart(n){
+    el("part" + n).querySelector(".opts, .row").style.display = "none";
+    const total = score.p1 + score.p2 + score.p3;
+    const max = PART1.length + PART2.length + PART3.length;
+    el("resultHint").textContent = "Your total:";
+    el("resultScore").textContent = total + " / " + max;
+    const pct = total / max;
+    el("resultMsg").textContent = pct === 1
+      ? "Perfect! You've got am, is and are completely under control. 🎉"
+      : pct >= .8 ? "Very good! Just a couple of slips — look at the ones you missed."
+      : pct >= .5 ? "Good start. Re-read the rule box and try once more."
+      : "Keep going — read the three cards at the top, then try again.";
+    el("result").scrollIntoView({behavior:"smooth", block:"center"});
+  }
+
+  el("restart").onclick = () => location.reload();
+
+  /* ---------- tiny rule reminder ---------- */
+  function why(form){
+    if (form === "am")  return "use <strong>am</strong> only after <strong>I</strong>.";
+    if (form === "is")  return "use <strong>is</strong> after he, she, it (one person or thing).";
+    return "use <strong>are</strong> after you, we, they (and <strong>you</strong> always).";
+  }
+
+  /* ---------- go ---------- */
+  /* no autofocus on first paint: focusing a lower input would scroll the page
+     past Part 1 for anyone opening the lesson (found in browser testing) */
+  show1(); show2(false); show3(false);
+  window.scrollTo(0, 0);
+})();
+</script>
 </body>
 </html>
